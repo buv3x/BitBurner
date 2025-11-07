@@ -9,7 +9,7 @@ export async function main(ns) {
   // "Daedalus",
   "Illuminati"
   ];
-  var counter = 0;
+  let counter = 0;
   ns.run("scripts/go/go2.js");
   await(ns.sleep(1000));
   while(true) {
