@@ -11,7 +11,10 @@ export async function main(ns) {
 
   let gameCounter = 0;
   game: while(true) {   
-
+    if(gameCounter > 10000) {
+      ns.alert("Too many games reached!");
+      return;
+    }
     let boardState = ns.go.resetBoardState(opponents[gameCounter++ % opponents.length], 13);
 
     let aiTime = 0;
@@ -22,13 +25,12 @@ export async function main(ns) {
     state.eyePoints = [];
     parseGrid(boardState, state);
 
-    let passCounter = 0;
+    let turnCounter = 0;
     while(true) {
       if(ns.go.getCurrentPlayer() == 'None') {
         continue game;
       }
-      state.turnCounter++;
-      if(state.turnCounter > 5000) {
+      if(turnCounter++ > 5000) {
         await(ns.prompt("Infinite main cycle"));
         state.stage = 667;
       }
@@ -65,6 +67,9 @@ export async function main(ns) {
         }
       }
       if(state.stage == 666) { // Stable base has not been built, game restart
+        await(ns.sleep(500)); // Board generation is seeded by time, so creating new game immediately
+                              // leads to a same board and potential infinite loop if no candidate
+                              // spaces are available at all due to ruggedness
         continue game;
       }
       if(state.stage == 667) { // Unexpected error, script is stopping for debugging
@@ -74,11 +79,6 @@ export async function main(ns) {
       await(ns.go.passTurn());
       aiTime += (Date.now() - startMove);
       state.stage = 5; // Some opponents might do a suicide even after your passing
-      passCounter++;
-      if(passCounter > 1000) {
-        await(ns.prompt("Infinite main cycle"));
-        state.stage = 667;
-      }
     }
   }
 }
@@ -502,7 +502,6 @@ async function processFill(ns, state, aiTime) {
       allEyePoints.push(eyePoint.firstEyePoint);
       allEyePoints.push(eyePoint.secondEyePoint);
     }
-    ns.print(allEyePoints);
     for(let i = state.minI; i <= state.maxI; ++i) {
       for(let j = state.minJ; j <= state.maxJ; ++j) {
         let isEye = false;
@@ -678,8 +677,6 @@ function cleanUpState(state) {
   state.baseIndex = 0;
   state.primaryStack = [];
   state.nextStraightPoint = null;
-  state.debugCounter = 0;
-  state.turnCounter = 0;
 }
 
 function baseMult(x, y, direction, baseDirection, state) {
